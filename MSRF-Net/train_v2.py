@@ -167,7 +167,7 @@ if __name__ == "__main__":
     # Set specific GPU for training
     #GPU_NUM = 1
     #set_gpu(GPU_NUM)
-    
+    path = '/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/data/simul'
     parser = argparse.ArgumentParser()
     
     parser.add_argument('-lens', dest='lens', action='store_true')
@@ -181,11 +181,12 @@ if __name__ == "__main__":
        
     elif args.arcs:
         print("Training for Arcs")
-        train_x, train_y = np.load("data/simul/train/images/imgs_128.npy"),\
-                       np.load("data/simul/train/arc_mask/arc_masks_128.npy")
+        train_x, train_y = np.load(f"{path}/train/images/imgs_128.npy"),\
+                       np.load(f"{path}/train/arc_mask/arc_masks_128.npy")
     
-        val_x, val_y = np.load("data/simul/val/images/imgs_128.npy"),\
-                   np.load("data/simul/val/arc_mask/arc_masks_128.npy")
+        val_x, val_y = np.load(f"{path}/val/images/imgs_128.npy"),\
+                   np.load(f"{path}/val/arc_mask/arc_masks_128.npy")
+        
         dest_files = {'output_dir':'output/arcs/',\
                     'model_dir':'models/simul_arcs_ws2.h5',\
                     'log_dir':'logs/log_arcs_128_2.txt',\
@@ -194,11 +195,11 @@ if __name__ == "__main__":
         
     elif args.lens:
         print("Training for lens")
-        train_x, train_y = np.load("data/simul/train/images/imgs_128.npy"),\
-                       np.load("data/simul/train/lens_mask/lens_masks_128.npy")
+        train_x, train_y = np.load(f"{path}/train/images/imgs_128.npy"),\
+                       np.load(f"{path}/train/lens_mask/lens_masks_128.npy")
         
-        val_x, val_y = np.load("data/simul/val/images/imgs_128.npy"),\
-                   np.load("data/simul/val/lens_mask/lens_masks_128.npy")
+        val_x, val_y = np.load(f"{path}/val/images/imgs_128.npy"),\
+                   np.load(f"{path}/val/lens_mask/lens_masks_128.npy")
         
         dest_files = {'output_dir':'output/lens/',\
                     'model_dir':'models/simul_lens_ws2.h5',\
