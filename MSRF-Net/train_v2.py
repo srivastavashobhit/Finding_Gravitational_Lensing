@@ -60,7 +60,10 @@ def train(epochs, batch_size, dest_files):
     val_bcount = int(val_x.shape[0]/batch_size)
     
     max_val_dice = -1
-    G = msrf()
+    strategy = tf.distribute.MirroredStrategy(cross_device_ops = tf.distribute.NcclAllReduce())
+# lr0 = 5e-4
+    with strategy.scope():
+        G = msrf()
     # G.summary()
     
     # Get the optimise and set the evaluation matrix, Adam optimiser
@@ -161,12 +164,23 @@ def set_gpu(GPU_NUM):
     gpus = tf.config.list_physical_devices('GPU')
     if gpus:
         tf.config.experimental.set_visible_devices(gpus[GPU_NUM], 'GPU')
-    
+
+        
+# def use_multi_gpu():
+#     strategy = tf.distribute.MirroredStrategy(cross_device_ops = tf.distribute.NcclAllReduce())
+#     lr0 = 5e-4
+#     with strategy.scope():
+#         model = get_compiled_model(lr0 = lr0)
+#         return model
 
 if __name__ == "__main__":
     # Set specific GPU for training
     #GPU_NUM = 1
-    #set_gpu(GPU_NUM)
+    gpus = tf.config.list_physical_devices('GPU')
+    print(gpus)
+    if gpus:
+        tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
+        
     path = '/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/data/simul'
     parser = argparse.ArgumentParser()
     
