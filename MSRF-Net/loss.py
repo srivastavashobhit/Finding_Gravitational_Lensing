@@ -10,7 +10,7 @@ np.random.seed(123)
 import warnings
 import numpy as np
 from keras import backend as K
-from keras.optimizers import Adam, Nadam
+from keras.optimizers import Adam, Nadam, RMSprop
 from sklearn.metrics import confusion_matrix
 import tensorflow as tf
 
@@ -20,8 +20,14 @@ def el(y_true, y_pred):
     return l
 def get_optimizer():
     
-    adam = Adam(lr=1e-4, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
-    return adam
+    #adam = Adam(lr=1e-4, beta_1=0.9, beta_2=0.999, epsilon=1e-08) #todo shobhit  -try new don't delete 1e-3, 3e-3, 1e-2 RMSProp
+    #return adam
+    
+    rms_prop = RMSprop(lr=0.0001, rho=0.9, momentum=0.9)
+    return rms_prop
+    
+    
+
 
 def single_dice_coef(y_true, y_pred_bin):
     # shape of y_true and y_pred_bin: (height, width)

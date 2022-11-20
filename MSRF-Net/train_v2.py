@@ -190,7 +190,7 @@ if __name__ == "__main__":
         dest_files = {'output_dir':'output/arcs/',\
                     'model_dir':'models/simul_arcs_ws2.h5',\
                     'log_dir':'logs/log_arcs_128_2.txt',\
-                    'hist_dir':'logs/history_arcs_128.p'}
+                    'hist_dir':'logs/history_arcs_128.p'}  
                 
         
     elif args.lens:
@@ -203,9 +203,9 @@ if __name__ == "__main__":
         
         dest_files = {'output_dir':'output/lens/',\
                     'model_dir':'models/simul_lens_ws2.h5',\
-                    'log_dir':'logs/log_lens_128_2.txt',\
-                     'hist_dir':'logs/history_lens_128.p'}
-                
+                    'log_dir':'logs/log_lens_128_2_ss_rmsprop_1e-4_p9_p9.txt',\
+                     'hist_dir':'logs/history_lens_128_rmsprop_1e-4_p9_p9.p'}
+                 
  
     print("Training shape : ",train_x.shape, train_y.shape)
     # Extracting the images and edges for validation set
