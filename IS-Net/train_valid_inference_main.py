@@ -614,54 +614,19 @@ if __name__ == "__main__":
     train_datasets, valid_datasets = [], []
     dataset_1, dataset_1 = {}, {}
 
-    dataset_tr = {"name": "DIS5K-TR",
-                 "im_dir": "../DIS5K/DIS-TR/im",
-                 "gt_dir": "../DIS5K/DIS-TR/gt",
-                 "im_ext": ".jpg",
+    dataset_tr = {"name": "GS-AMP-TR-1",
+                 "im_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcAlwaysPresent/train/images",
+                 "gt_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcAlwaysPresent/train/arcs",
+                 "im_ext": ".png",
                  "gt_ext": ".png",
-                 "cache_dir":"../DIS5K-Cache/DIS-TR"}
+                 "cache_dir":"cache"}
 
-    dataset_vd = {"name": "DIS5K-VD",
-                 "im_dir": "../DIS5K/DIS-VD/im",
-                 "gt_dir": "../DIS5K/DIS-VD/gt",
-                 "im_ext": ".jpg",
+    dataset_vd = {"name": "GS-AMP-VD-1",
+                 "im_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcAlwaysPresent/valid/images",
+                 "gt_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcAlwaysPresent/valid/arcs",
+                 "im_ext": ".png",
                  "gt_ext": ".png",
-                 "cache_dir":"../DIS5K-Cache/DIS-VD"}
-
-    dataset_te1 = {"name": "DIS5K-TE1",
-                 "im_dir": "../DIS5K/DIS-TE1/im",
-                 "gt_dir": "../DIS5K/DIS-TE1/gt",
-                 "im_ext": ".jpg",
-                 "gt_ext": ".png",
-                 "cache_dir":"../DIS5K-Cache/DIS-TE1"}
-
-    dataset_te2 = {"name": "DIS5K-TE2",
-                 "im_dir": "../DIS5K/DIS-TE2/im",
-                 "gt_dir": "../DIS5K/DIS-TE2/gt",
-                 "im_ext": ".jpg",
-                 "gt_ext": ".png",
-                 "cache_dir":"../DIS5K-Cache/DIS-TE2"}
-
-    dataset_te3 = {"name": "DIS5K-TE3",
-                 "im_dir": "../DIS5K/DIS-TE3/im",
-                 "gt_dir": "../DIS5K/DIS-TE3/gt",
-                 "im_ext": ".jpg",
-                 "gt_ext": ".png",
-                 "cache_dir":"../DIS5K-Cache/DIS-TE3"}
-
-    dataset_te4 = {"name": "DIS5K-TE4",
-                 "im_dir": "../DIS5K/DIS-TE4/im",
-                 "gt_dir": "../DIS5K/DIS-TE4/gt",
-                 "im_ext": ".jpg",
-                 "gt_ext": ".png",
-                 "cache_dir":"../DIS5K-Cache/DIS-TE4"}
-    ### test your own dataset
-    dataset_demo = {"name": "your-dataset",
-                 "im_dir": "../your-dataset/im",
-                 "gt_dir": "",
-                 "im_ext": ".jpg",
-                 "gt_ext": "",
-                 "cache_dir":"../your-dataset/cache"}
+                 "cache_dir":"cache"}
 
     train_datasets = [dataset_tr] ## users can create mutiple dictionary for setting a list of datasets as training set
     # valid_datasets = [dataset_vd] ## users can create mutiple dictionary for setting a list of datasets as vaidation sets or inference sets
@@ -699,13 +664,13 @@ if __name__ == "__main__":
     ## -- 2.3. cache data spatial size --
     ## To handle large size input images, which take a lot of time for loading in training,
     #  we introduce the cache mechanism for pre-convering and resizing the jpg and png images into .pt file
-    hypar["cache_size"] = [1024, 1024] ## cached input spatial resolution, can be configured into different size
+    hypar["cache_size"] = [125, 125] ## cached input spatial resolution, can be configured into different size
     hypar["cache_boost_train"] = False ## "True" or "False", indicates wheather to load all the training datasets into RAM, True will greatly speed the training process while requires more RAM
     hypar["cache_boost_valid"] = False ## "True" or "False", indicates wheather to load all the validation datasets into RAM, True will greatly speed the training process while requires more RAM
 
     ## --- 2.4. data augmentation parameters ---
-    hypar["input_size"] = [1024, 1024] ## mdoel input spatial size, usually use the same value hypar["cache_size"], which means we don't further resize the images
-    hypar["crop_size"] = [1024, 1024] ## random crop size from the input, it is usually set as smaller than hypar["cache_size"], e.g., [920,920] for data augmentation
+    hypar["input_size"] = [125, 125] ## mdoel input spatial size, usually use the same value hypar["cache_size"], which means we don't further resize the images
+    hypar["crop_size"] = [110, 110] ## random crop size from the input, it is usually set as smaller than hypar["cache_size"], e.g., [920,920] for data augmentation
     hypar["random_flip_h"] = 1 ## horizontal flip, currently hard coded in the dataloader and it is not in use
     hypar["random_flip_v"] = 0 ## vertical flip , currently not in use
 
@@ -719,8 +684,8 @@ if __name__ == "__main__":
     hypar["batch_size_valid"] = 1 ## batch size for validation and inferencing
     print("batch size: ", hypar["batch_size_train"])
 
-    hypar["max_ite"] = 10000000 ## if early stop couldn't stop the training process, stop it by the max_ite_num
-    hypar["max_epoch_num"] = 1000000 ## if early stop and max_ite couldn't stop the training process, stop it by the max_epoch_num
+    hypar["max_ite"] = 1000000 ## if early stop couldn't stop the training process, stop it by the max_ite_num
+    hypar["max_epoch_num"] = 2000 ## if early stop and max_ite couldn't stop the training process, stop it by the max_epoch_num
 
     main(train_datasets,
          valid_datasets,
