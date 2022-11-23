@@ -4,7 +4,8 @@ import numpy as np
 from skimage import io
 import time
 
-import torch, gc
+import torch
+import gc
 import torch.nn as nn
 from torch.autograd import Variable
 import torch.optim as optim
@@ -22,20 +23,24 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 SMOOTH = 1e-6
 
-def iou_pytorch(outputs: torch.Tensor, labels: torch.Tensor):
+def iou_pytorch(outputs, labels):
     # You can comment out this line if you are passing tensors of equal shape
     # But if you are passing output from UNet or something it will most probably
     # be with the BATCH x 1 x H x W shape
     outputs = outputs.squeeze(1)  # BATCH x 1 x H x W => BATCH x H x W
 
-    intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
-    union = (outputs | labels).float().sum((1, 2))         # Will be zzero if both are 0
+    intersection = torch.logical_and(labels, outputs)
+    union = torch.logical_or(labels, outputs)
+    iou_score = torch.sum(intersection) / (torch.sum(union) + SMOOTH)
+    
+#     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
+#     union = (outputs | labels).float().sum((1, 2))         # Will be zzero if both are 0
 
-    iou = (intersection + SMOOTH) / (union + SMOOTH)  # We smooth our devision to avoid 0/0
+#     iou = (intersection + SMOOTH) / (union + SMOOTH)  # We smooth our devision to avoid 0/0
 
-    thresholded = torch.clamp(20 * (iou - 0.5), 0, 10).ceil() / 10  # This is equal to comparing with thresolds
+    thresholded = torch.clamp(20 * (iou_score - 0.5), 0, 10).ceil() / 10  # This is equal to comparing with thresolds
 
-    return iou, thresholded  # Or thresholded.mean() if you are interested in average across the batch
+    return iou_score, thresholded  # Or thresholded.mean() if you are interested in average across the batch
 
 
 def get_gt_encoder(train_dataloaders, train_datasets, valid_dataloaders, valid_datasets, hypar, train_dataloaders_val, train_datasets_val): #model_path, model_save_fre, max_ite=1000000):
@@ -143,8 +148,8 @@ def get_gt_encoder(train_dataloaders, train_datasets, valid_dataloaders, valid_d
             del ds, loss2, loss
             end_inf_loss_back = time.time()-start_inf_loss_back
 
-            print("GT Encoder Training>>>"+model_path.split('/')[-1]+" - [epoch: %3d/%3d, batch: %5d/%5d, ite: %d] train loss: %3f, tar: %3f, time-per-iter: %3f s, time_read: %3f" % (
-            epoch + 1, epoch_num, (i + 1) * batch_size_train, train_num, ite_num, running_loss / ite_num4val, running_tar_loss / ite_num4val, time.time()-start_last, time.time()-start_last-end_inf_loss_back))
+            # print("GT Encoder Training>>>"+model_path.split('/')[-1]+" - [epoch: %3d/%3d, batch: %5d/%5d, ite: %d] train loss: %3f, tar: %3f, time-per-iter: %3f s, time_read: %3f" % (
+            # epoch + 1, epoch_num, (i + 1) * batch_size_train, train_num, ite_num, running_loss / ite_num4val, running_tar_loss / ite_num4val, time.time()-start_last, time.time()-start_last-end_inf_loss_back))
             start_last = time.time()
 
             if ite_num % model_save_fre == 0:  # validate every 2000 iterations
@@ -286,7 +291,7 @@ def valid_gt_encoder(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
             iou, iou_threshold = iou_pytorch(inputs_val_v, labels_val_v)
 
 
-            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f, pre: %f, rec: %f, iou: %f, iou_threshold: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end), np.mean(PRE[i_test], 0), np.mean(REC[i_test], 0), iou, iou_threshold)
+            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f, pre: %f, rec: %f, iou: %f, iou_threshold: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end, np.mean(PRE[i_test], 0), np.mean(REC[i_test], 0), iou, iou_threshold))
 
 
 
@@ -397,8 +402,8 @@ def train(net, optimizer, train_dataloaders, train_datasets, valid_dataloaders, 
             del ds, loss2, loss
             end_inf_loss_back = time.time()-start_inf_loss_back
 
-            print(">>>"+model_path.split('/')[-1]+" - [epoch: %3d/%3d, batch: %5d/%5d, ite: %d] train loss: %3f, tar: %3f, time-per-iter: %3f s, time_read: %3f" % (
-            epoch + 1, epoch_num, (i + 1) * batch_size_train, train_num, ite_num, running_loss / ite_num4val, running_tar_loss / ite_num4val, time.time()-start_last, time.time()-start_last-end_inf_loss_back))
+            # print(">>>"+model_path.split('/')[-1]+" - [epoch: %3d/%3d, batch: %5d/%5d, ite: %d] train loss: %3f, tar: %3f, time-per-iter: %3f s, time_read: %3f" % (
+            # epoch + 1, epoch_num, (i + 1) * batch_size_train, train_num, ite_num, running_loss / ite_num4val, running_tar_loss / ite_num4val, time.time()-start_last, time.time()-start_last-end_inf_loss_back))
             start_last = time.time()
 
             if ite_num % model_save_fre == 0:  # validate every 2000 iterations
@@ -534,7 +539,7 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
             iou, iou_threshold = iou_pytorch(inputs_val_v, labels_val_v)
             # todo ruru idk I think prec is just for that batch and I need to take the mean from below.
 
-            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f, pre: %f, rec: %f, iou: %f, iou_threshold: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end), np.mean(PRE[i_test], 0), np.mean(REC[i_test], 0), iou, iou_threshold)
+            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f, pre: %f, rec: %f, iou: %f, iou_threshold: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end, np.mean(PRE[i_test], 0), np.mean(REC[i_test], 0), iou, iou_threshold))
 
             del loss2_val, loss_val
 

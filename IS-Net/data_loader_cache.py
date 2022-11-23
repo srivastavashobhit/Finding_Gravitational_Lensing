@@ -25,21 +25,21 @@ def get_im_gt_name_dict(datasets, flag='valid'):
     print("------------------------------", flag, "--------------------------------")
     name_im_gt_list = []
     for i in range(len(datasets)):
-        print("--->>>", flag, " dataset ",i,"/",len(datasets)," ",datasets[i]["name"],"<<<---")
+        # print("--->>>", flag, " dataset ",i,"/",len(datasets)," ",datasets[i]["name"],"<<<---")
         tmp_im_list, tmp_gt_list = [], []
         tmp_im_list = glob(datasets[i]["im_dir"]+os.sep+'*'+datasets[i]["im_ext"])
 
         # img_name_dict[im_dirs[i][0]] = tmp_im_list
-        print('-im-',datasets[i]["name"],datasets[i]["im_dir"], ': ',len(tmp_im_list))
+        # print('-im-',datasets[i]["name"],datasets[i]["im_dir"], ': ',len(tmp_im_list))
 
         if(datasets[i]["gt_dir"]==""):
-            print('-gt-', datasets[i]["name"], datasets[i]["gt_dir"], ': ', 'No Ground Truth Found')
+            # print('-gt-', datasets[i]["name"], datasets[i]["gt_dir"], ': ', 'No Ground Truth Found')
             tmp_gt_list = []
         else:
             tmp_gt_list = [datasets[i]["gt_dir"]+os.sep+x.split(os.sep)[-1].split(datasets[i]["im_ext"])[0]+datasets[i]["gt_ext"] for x in tmp_im_list]
 
             # lbl_name_dict[im_dirs[i][0]] = tmp_gt_list
-            print('-gt-', datasets[i]["name"],datasets[i]["gt_dir"], ': ',len(tmp_gt_list))
+            # print('-gt-', datasets[i]["name"],datasets[i]["gt_dir"], ': ',len(tmp_gt_list))
 
 
         if flag=="train": ## combine multiple training sets into one dataset
@@ -275,7 +275,7 @@ class GOSDatasetCache(Dataset):
         for i, im_path in tqdm(enumerate(self.dataset["im_path"]), total=len(self.dataset["im_path"])):
 
             im_id = cached_dataset["im_name"][i]
-            print("im_path: ", im_path)
+            # print("im_path: ", im_path)
             im = im_reader(im_path)
             im, im_shp = im_preprocess(im,self.cache_size)
             im_cache_file = os.path.join(cache_folder,self.dataset["data_name"][i]+"_"+im_id + "_im.pt")
