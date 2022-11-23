@@ -16,6 +16,28 @@ from models import *
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+
+
+# PyTroch version
+
+SMOOTH = 1e-6
+
+def iou_pytorch(outputs: torch.Tensor, labels: torch.Tensor):
+    # You can comment out this line if you are passing tensors of equal shape
+    # But if you are passing output from UNet or something it will most probably
+    # be with the BATCH x 1 x H x W shape
+    outputs = outputs.squeeze(1)  # BATCH x 1 x H x W => BATCH x H x W
+
+    intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
+    union = (outputs | labels).float().sum((1, 2))         # Will be zzero if both are 0
+
+    iou = (intersection + SMOOTH) / (union + SMOOTH)  # We smooth our devision to avoid 0/0
+
+    thresholded = torch.clamp(20 * (iou - 0.5), 0, 10).ceil() / 10  # This is equal to comparing with thresolds
+
+    return iou, thresholded  # Or thresholded.mean() if you are interested in average across the batch
+
+
 def get_gt_encoder(train_dataloaders, train_datasets, valid_dataloaders, valid_datasets, hypar, train_dataloaders_val, train_datasets_val): #model_path, model_save_fre, max_ite=1000000):
 
     # train_dataloaders, train_datasets = create_dataloaders(train_nm_im_gt_list,
@@ -248,7 +270,7 @@ def valid_gt_encoder(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
 
                 pre,rec,f1,mae = f1_mae_torch(pred_val*255, gt, valid_dataset, i_test, mybins, hypar)
 
-                PRE[i_test,:]=pre
+                PRE[i_test,:] = pre
                 REC[i_test,:] = rec
                 F1[i_test,:] = f1
                 MAE[i_test] = mae
@@ -261,7 +283,15 @@ def valid_gt_encoder(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
             val_loss += loss_val.item()#data[0]
             tar_loss += loss2_val.item()#data[0]
 
-            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end))
+            iou, iou_threshold = iou_pytorch(inputs_val_v, labels_val_v)
+
+
+            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f, pre: %f, rec: %f, iou: %f, iou_threshold: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end), np.mean(PRE[i_test], 0), np.mean(REC[i_test], 0), iou, iou_threshold)
+
+
+
+
+
 
             del loss2_val, loss_val
 
@@ -488,7 +518,7 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
                 pre,rec,f1,mae = f1_mae_torch(pred_val*255, gt, valid_dataset, i_test, mybins, hypar)
 
 
-                PRE[i_test,:]=pre
+                PRE[i_test,:]= pre
                 REC[i_test,:] = rec
                 F1[i_test,:] = f1
                 MAE[i_test] = mae
@@ -496,12 +526,15 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
                 del ds_val, gt
                 gc.collect()
                 torch.cuda.empty_cache()
-
+                # todo ruru add IoU
             # if(loss_val.data[0]>1):
             val_loss += loss_val.item()#data[0]
             tar_loss += loss2_val.item()#data[0]
 
-            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end))
+            iou, iou_threshold = iou_pytorch(inputs_val_v, labels_val_v)
+            # todo ruru idk I think prec is just for that batch and I need to take the mean from below.
+
+            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f, pre: %f, rec: %f, iou: %f, iou_threshold: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end), np.mean(PRE[i_test], 0), np.mean(REC[i_test], 0), iou, iou_threshold)
 
             del loss2_val, loss_val
 
