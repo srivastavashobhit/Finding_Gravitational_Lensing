@@ -32,15 +32,8 @@ def iou_pytorch(outputs, labels):
     intersection = torch.logical_and(labels, outputs)
     union = torch.logical_or(labels, outputs)
     iou_score = torch.sum(intersection) / (torch.sum(union) + SMOOTH)
-    
-#     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
-#     union = (outputs | labels).float().sum((1, 2))         # Will be zzero if both are 0
 
-#     iou = (intersection + SMOOTH) / (union + SMOOTH)  # We smooth our devision to avoid 0/0
-
-    thresholded = torch.clamp(20 * (iou_score - 0.5), 0, 10).ceil() / 10  # This is equal to comparing with thresolds
-
-    return iou_score, thresholded  # Or thresholded.mean() if you are interested in average across the batch
+    return iou_score
 
 
 def get_gt_encoder(train_dataloaders, train_datasets, valid_dataloaders, valid_datasets, hypar, train_dataloaders_val, train_datasets_val): #model_path, model_save_fre, max_ite=1000000):
@@ -252,7 +245,7 @@ def valid_gt_encoder(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
 
             # loss2_val, loss_val = muti_loss_fusion(ds_val, labels_val_v)
             loss2_val, loss_val = net.compute_loss(ds_val, labels_val_v)
-
+            
             # compute F measure
             for t in range(hypar["batch_size_valid"]):
                 val_cnt = val_cnt + 1.0
@@ -273,7 +266,7 @@ def valid_gt_encoder(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
                 with torch.no_grad():
                     gt = torch.tensor(gt).to(device)
 
-                pre,rec,f1,mae = f1_mae_torch(pred_val*255, gt, valid_dataset, i_test, mybins, hypar)
+                pre, rec, f1, mae = f1_mae_torch(pred_val*255, gt, valid_dataset, i_test, mybins, hypar)
 
                 PRE[i_test,:] = pre
                 REC[i_test,:] = rec
@@ -288,15 +281,9 @@ def valid_gt_encoder(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
             val_loss += loss_val.item()#data[0]
             tar_loss += loss2_val.item()#data[0]
 
-            iou, iou_threshold = iou_pytorch(inputs_val_v, labels_val_v)
+            iou = iou_pytorch(inputs_val_v, labels_val_v)
 
-
-            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f, pre: %f, rec: %f, iou: %f, iou_threshold: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end, np.mean(PRE[i_test], 0), np.mean(REC[i_test], 0), iou, iou_threshold))
-
-
-
-
-
+            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f, pre: %f, rec: %f, iou: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end, np.mean(PRE[i_val]), np.mean(REC[i_val]), iou))
 
             del loss2_val, loss_val
 
@@ -498,7 +485,7 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
 
             # loss2_val, loss_val = muti_loss_fusion(ds_val, labels_val_v)
             loss2_val, loss_val = net.compute_loss(ds_val, labels_val_v)
-
+            
             # compute F measure
             for t in range(hypar["batch_size_valid"]):
                 i_test = imidx_val[t].data.numpy()
@@ -531,15 +518,14 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
                 del ds_val, gt
                 gc.collect()
                 torch.cuda.empty_cache()
-                # todo ruru add IoU
+
             # if(loss_val.data[0]>1):
             val_loss += loss_val.item()#data[0]
             tar_loss += loss2_val.item()#data[0]
 
-            iou, iou_threshold = iou_pytorch(inputs_val_v, labels_val_v)
-            # todo ruru idk I think prec is just for that batch and I need to take the mean from below.
+            iou = iou_pytorch(inputs_val_v, labels_val_v)
 
-            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f, pre: %f, rec: %f, iou: %f, iou_threshold: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end, np.mean(PRE[i_test], 0), np.mean(REC[i_test], 0), iou, iou_threshold))
+            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f, pre: %f, rec: %f, iou: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end, np.mean(PRE[i_val]), np.mean(REC[i_val]), iou))
 
             del loss2_val, loss_val
 
