@@ -22,7 +22,7 @@ from tensorflow.keras.layers import BatchNormalization
 
 from tensorflow.keras.optimizers import SGD
 import tensorflow as tf
-from tensorflow.keras.optimizers import Adam,RMSprop
+from tensorflow.keras.optimizers import Adam, RMSprop
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.losses import BinaryCrossentropy,CategoricalCrossentropy
 import numpy as np
@@ -202,9 +202,9 @@ if __name__ == "__main__":
                    np.load(f"{path}/val/lens_mask/lens_masks_128.npy")
         
         dest_files = {'output_dir':'output/lens/',\
-                    'model_dir':'models/simul_lens_ws2.h5',\
-                    'log_dir':'logs/log_lens_128_2.txt',\
-                     'hist_dir':'logs/history_lens_128.p'}
+                    'model_dir':'models/simul_lens_ws2_adagrad_lr0001.h5',\
+                    'log_dir':'logs/log_lens_128_2_adagrad_lr0001.txt',\
+                     'hist_dir':'logs/history_lens_128_adagrad_lr0001.p'}
                 
  
     print("Training shape : ",train_x.shape, train_y.shape)
