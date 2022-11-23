@@ -4,8 +4,7 @@ import numpy as np
 from skimage import io
 import time
 
-import torch
-import gc
+import torch, gc
 import torch.nn as nn
 from torch.autograd import Variable
 import torch.optim as optim
@@ -16,10 +15,6 @@ from basics import  f1_mae_torch #normPRED, GOSPRF1ScoresCache,f1score_torch,
 from models import *
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-
-
-# PyTroch version
 
 SMOOTH = 1e-6
 
@@ -245,7 +240,7 @@ def valid_gt_encoder(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
 
             # loss2_val, loss_val = muti_loss_fusion(ds_val, labels_val_v)
             loss2_val, loss_val = net.compute_loss(ds_val, labels_val_v)
-            
+
             # compute F measure
             for t in range(hypar["batch_size_valid"]):
                 val_cnt = val_cnt + 1.0
@@ -485,7 +480,7 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
 
             # loss2_val, loss_val = muti_loss_fusion(ds_val, labels_val_v)
             loss2_val, loss_val = net.compute_loss(ds_val, labels_val_v)
-            
+
             # compute F measure
             for t in range(hypar["batch_size_valid"]):
                 i_test = imidx_val[t].data.numpy()
