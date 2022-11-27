@@ -16,6 +16,21 @@ from models import *
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+SMOOTH = 1e-6
+
+def iou_pytorch(outputs, labels):
+    # You can comment out this line if you are passing tensors of equal shape
+    # But if you are passing output from UNet or something it will most probably
+    # be with the BATCH x 1 x H x W shape
+    outputs = outputs.squeeze(1)  # BATCH x 1 x H x W => BATCH x H x W
+
+    intersection = torch.logical_and(labels, outputs)
+    union = torch.logical_or(labels, outputs)
+    iou_score = torch.sum(intersection) / (torch.sum(union) + SMOOTH)
+
+    return iou_score
+
+
 def get_gt_encoder(train_dataloaders, train_datasets, valid_dataloaders, valid_datasets, hypar, train_dataloaders_val, train_datasets_val): #model_path, model_save_fre, max_ite=1000000):
 
     # train_dataloaders, train_datasets = create_dataloaders(train_nm_im_gt_list,
@@ -121,8 +136,8 @@ def get_gt_encoder(train_dataloaders, train_datasets, valid_dataloaders, valid_d
             del ds, loss2, loss
             end_inf_loss_back = time.time()-start_inf_loss_back
 
-            print("GT Encoder Training>>>"+model_path.split('/')[-1]+" - [epoch: %3d/%3d, batch: %5d/%5d, ite: %d] train loss: %3f, tar: %3f, time-per-iter: %3f s, time_read: %3f" % (
-            epoch + 1, epoch_num, (i + 1) * batch_size_train, train_num, ite_num, running_loss / ite_num4val, running_tar_loss / ite_num4val, time.time()-start_last, time.time()-start_last-end_inf_loss_back))
+            # print("GT Encoder Training>>>"+model_path.split('/')[-1]+" - [epoch: %3d/%3d, batch: %5d/%5d, ite: %d] train loss: %3f, tar: %3f, time-per-iter: %3f s, time_read: %3f" % (
+            # epoch + 1, epoch_num, (i + 1) * batch_size_train, train_num, ite_num, running_loss / ite_num4val, running_tar_loss / ite_num4val, time.time()-start_last, time.time()-start_last-end_inf_loss_back))
             start_last = time.time()
 
             if ite_num % model_save_fre == 0:  # validate every 2000 iterations
@@ -246,9 +261,9 @@ def valid_gt_encoder(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
                 with torch.no_grad():
                     gt = torch.tensor(gt).to(device)
 
-                pre,rec,f1,mae = f1_mae_torch(pred_val*255, gt, valid_dataset, i_test, mybins, hypar)
+                pre, rec, f1, mae = f1_mae_torch(pred_val*255, gt, valid_dataset, i_test, mybins, hypar)
 
-                PRE[i_test,:]=pre
+                PRE[i_test,:] = pre
                 REC[i_test,:] = rec
                 F1[i_test,:] = f1
                 MAE[i_test] = mae
@@ -261,7 +276,9 @@ def valid_gt_encoder(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
             val_loss += loss_val.item()#data[0]
             tar_loss += loss2_val.item()#data[0]
 
-            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end))
+            iou = iou_pytorch(inputs_val_v, labels_val_v)
+
+            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f, pre: %f, rec: %f, iou: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end, np.mean(PRE[i_val]), np.mean(REC[i_val]), iou))
 
             del loss2_val, loss_val
 
@@ -367,8 +384,8 @@ def train(net, optimizer, train_dataloaders, train_datasets, valid_dataloaders, 
             del ds, loss2, loss
             end_inf_loss_back = time.time()-start_inf_loss_back
 
-            print(">>>"+model_path.split('/')[-1]+" - [epoch: %3d/%3d, batch: %5d/%5d, ite: %d] train loss: %3f, tar: %3f, time-per-iter: %3f s, time_read: %3f" % (
-            epoch + 1, epoch_num, (i + 1) * batch_size_train, train_num, ite_num, running_loss / ite_num4val, running_tar_loss / ite_num4val, time.time()-start_last, time.time()-start_last-end_inf_loss_back))
+            # print(">>>"+model_path.split('/')[-1]+" - [epoch: %3d/%3d, batch: %5d/%5d, ite: %d] train loss: %3f, tar: %3f, time-per-iter: %3f s, time_read: %3f" % (
+            # epoch + 1, epoch_num, (i + 1) * batch_size_train, train_num, ite_num, running_loss / ite_num4val, running_tar_loss / ite_num4val, time.time()-start_last, time.time()-start_last-end_inf_loss_back))
             start_last = time.time()
 
             if ite_num % model_save_fre == 0:  # validate every 2000 iterations
@@ -488,7 +505,7 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
                 pre,rec,f1,mae = f1_mae_torch(pred_val*255, gt, valid_dataset, i_test, mybins, hypar)
 
 
-                PRE[i_test,:]=pre
+                PRE[i_test,:]= pre
                 REC[i_test,:] = rec
                 F1[i_test,:] = f1
                 MAE[i_test] = mae
@@ -501,7 +518,9 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
             val_loss += loss_val.item()#data[0]
             tar_loss += loss2_val.item()#data[0]
 
-            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end))
+            iou = iou_pytorch(inputs_val_v, labels_val_v)
+
+            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f, pre: %f, rec: %f, iou: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end, np.mean(PRE[i_val]), np.mean(REC[i_val]), iou))
 
             del loss2_val, loss_val
 
