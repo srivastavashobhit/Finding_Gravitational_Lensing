@@ -14,6 +14,10 @@ from data_loader_cache import get_im_gt_name_dict, create_dataloaders, GOSRandom
 from basics import  f1_mae_torch #normPRED, GOSPRF1ScoresCache,f1score_torch,
 from models import *
 
+from torch.utils.tensorboard import SummaryWriter
+
+
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 SMOOTH = 1e-6
@@ -144,8 +148,8 @@ def get_gt_encoder(train_dataloaders, train_datasets, valid_dataloaders, valid_d
                 notgood_cnt += 1
                 # net.eval()
                 # tmp_f1, tmp_mae, val_loss, tar_loss, i_val, tmp_time = valid_gt_encoder(net, valid_dataloaders, valid_datasets, hypar, epoch)
-                tmp_f1, tmp_mae, val_loss, tar_loss, i_val, tmp_time = valid_gt_encoder(net, train_dataloaders_val, train_datasets_val, hypar, epoch)
-
+                tmp_f1, tmp_mae, val_loss, tar_loss, i_val, tmp_time, iou = valid_gt_encoder(net, train_dataloaders_val, train_datasets_val, hypar, epoch)
+                
                 net.train()  # resume train
 
                 tmp_out = 0
@@ -184,8 +188,9 @@ def get_gt_encoder(train_dataloaders, train_datasets, valid_dataloaders, valid_d
                 if(notgood_cnt >= hypar["early_stop"]):
                     print("No improvements in the last "+str(notgood_cnt)+" validation periods, so training stopped !")
                     exit()
-
+        
     print("Training Reaches The Maximum Epoch Number")
+    writer.flush()
     return net
 
 def valid_gt_encoder(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
@@ -277,9 +282,9 @@ def valid_gt_encoder(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
             tar_loss += loss2_val.item()#data[0]
 
             iou = iou_pytorch(inputs_val_v, labels_val_v)
-
-            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f, pre: %f, rec: %f, iou: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end, np.mean(PRE[i_val]), np.mean(REC[i_val]), iou))
-
+            
+            # print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f, pre: %f, rec: %f, iou: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end, np.mean(PRE[i_val]), np.mean(REC[i_val]), iou))
+            
             del loss2_val, loss_val
 
         print('============================')
@@ -291,10 +296,18 @@ def valid_gt_encoder(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
         tmp_mae.append(np.mean(MAE))
         print("The max F1 Score: %f"%(np.max(f1_m)))
         print("MAE: ", np.mean(MAE))
+        
+        writer.add_scalar("PRE_m/valid_gt_encoder", np.mean(PRE_m), epoch)
+        writer.add_scalar("REC_m/valid_gt_encoder", np.mean(REC_m), epoch)
+        writer.add_scalar("f1_m/valid_gt_encoder", np.mean(f1_m), epoch)
+        writer.add_scalar("val_loss/valid_gt_encoder", val_loss, epoch)
+        writer.add_scalar("tar_loss/valid_gt_encoder", tar_loss, epoch)
+        writer.add_scalar("MAE/valid_gt_encoder", np.mean(MAE), epoch)
+        writer.add_scalar("iou/valid_gt_encoder", iou, epoch)
 
     # print('[epoch: %3d/%3d, ite: %5d] tra_ls: %3f, val_ls: %3f, tar_ls: %3f, maxf1: %3f, val_time: %6f'% (epoch + 1, epoch_num, ite_num, running_loss / ite_num4val, val_loss/val_cnt, tar_loss/val_cnt, tmp_f1[-1], time.time()-start_valid))
 
-    return tmp_f1, tmp_mae, val_loss, tar_loss, i_val, tmp_time
+    return tmp_f1, tmp_mae, val_loss, tar_loss, i_val, tmp_time, iou
 
 def train(net, optimizer, train_dataloaders, train_datasets, valid_dataloaders, valid_datasets, hypar,train_dataloaders_val, train_datasets_val): #model_path, model_save_fre, max_ite=1000000):
 
@@ -391,7 +404,8 @@ def train(net, optimizer, train_dataloaders, train_datasets, valid_dataloaders, 
             if ite_num % model_save_fre == 0:  # validate every 2000 iterations
                 notgood_cnt += 1
                 net.eval()
-                tmp_f1, tmp_mae, val_loss, tar_loss, i_val, tmp_time = valid(net, valid_dataloaders, valid_datasets, hypar, epoch)
+                tmp_f1, tmp_mae, val_loss, tar_loss, i_val, tmp_time, iou = valid(net, valid_dataloaders, valid_datasets, hypar, epoch)
+                
                 net.train()  # resume train
 
                 tmp_out = 0
@@ -518,21 +532,31 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
             val_loss += loss_val.item()#data[0]
             tar_loss += loss2_val.item()#data[0]
 
-            iou = iou_pytorch(inputs_val_v, labels_val_v)
-
-            print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f, pre: %f, rec: %f, iou: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end, np.mean(PRE[i_val]), np.mean(REC[i_val]), iou))
-
+            
+#             moved the iou below
+            # print("[validating: %5d/%5d] val_ls:%f, tar_ls: %f, f1: %f, mae: %f, time: %f, pre: %f, rec: %f, iou: %f"% (i_val, val_num, val_loss / (i_val + 1), tar_loss / (i_val + 1), np.amax(F1[i_test,:]), MAE[i_test],t_end, np.mean(PRE[i_val]), np.mean(REC[i_val]), iou))
+            
+            
             del loss2_val, loss_val
 
         print('============================')
         PRE_m = np.mean(PRE,0)
         REC_m = np.mean(REC,0)
         f1_m = (1+0.3)*PRE_m*REC_m/(0.3*PRE_m+REC_m+1e-8)
-
+        iou = iou_pytorch(inputs_val_v, labels_val_v)
+        
         tmp_f1.append(np.amax(f1_m))
         tmp_mae.append(np.mean(MAE))
+        
+        writer.add_scalar("PRE_m/valid", np.mean(PRE_m), epoch)
+        writer.add_scalar("REC_m/valid", np.mean(REC_m), epoch)
+        writer.add_scalar("f1_m/valid", np.mean(f1_m), epoch)
+        writer.add_scalar("MAE/valid", np.mean(MAE), epoch)
+        writer.add_scalar("val_loss/valid", val_loss, epoch)
+        writer.add_scalar("tar_loss/valid", tar_loss, epoch)
+        writer.add_scalar("iou/valid", iou, epoch)
 
-    return tmp_f1, tmp_mae, val_loss, tar_loss, i_val, tmp_time
+    return tmp_f1, tmp_mae, val_loss, tar_loss, i_val, tmp_time, iou
 
 def main(train_datasets,
          valid_datasets,
@@ -627,22 +651,23 @@ def main(train_datasets,
 
 
 if __name__ == "__main__":
+    writer = SummaryWriter(comment="Second_test")
 
     ### --------------- STEP 1: Configuring the Train, Valid and Test datasets ---------------
     ## configure the train, valid and inference datasets
     train_datasets, valid_datasets = [], []
     dataset_1, dataset_1 = {}, {}
 
-    dataset_tr = {"name": "GS-AMP-TR-1",
-                 "im_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcAlwaysPresent/train/images",
-                 "gt_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcAlwaysPresent/train/arcs",
+    dataset_tr = {"name": "GS-AMP-TR-Lenses-1",
+                 "im_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcMayPresent/train/images",
+                 "gt_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcMayPresent/train/lenses",
                  "im_ext": ".png",
                  "gt_ext": ".png",
                  "cache_dir":"cache"}
 
-    dataset_vd = {"name": "GS-AMP-VD-1",
-                 "im_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcAlwaysPresent/valid/images",
-                 "gt_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcAlwaysPresent/valid/arcs",
+    dataset_vd = {"name": "GS-AMP-VD-Lenses-1",
+                 "im_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcMayPresent/valid/images",
+                 "gt_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcMayPresent/valid/lenses",
                  "im_ext": ".png",
                  "gt_ext": ".png",
                  "cache_dir":"cache"}
@@ -709,3 +734,5 @@ if __name__ == "__main__":
     main(train_datasets,
          valid_datasets,
          hypar=hypar)
+    
+    writer.close()
