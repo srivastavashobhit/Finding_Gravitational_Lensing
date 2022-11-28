@@ -28,11 +28,16 @@ def iou_pytorch(outputs, labels):
     # But if you are passing output from UNet or something it will most probably
     # be with the BATCH x 1 x H x W shape
     outputs = outputs.squeeze(1)  # BATCH x 1 x H x W => BATCH x H x W
-
-    intersection = torch.logical_and(labels, outputs)
-    union = torch.logical_or(labels, outputs)
-    iou_score = torch.sum(intersection) / (torch.sum(union) + SMOOTH)
-
+    outputs= outputs.cpu().data.numpy()
+    labels = labels.cpu().data.numpy()
+    # intersection = torch.logical_and(labels, outputs)
+    # union = torch.logical_or(labels, outputs)
+    # iou_score = torch.sum(intersection) / (torch.sum(union) + SMOOTH)
+    
+    intersection = np.logical_and(labels, outputs)
+    union = np.logical_or(labels, outputs)
+    iou_score = np.sum(intersection) / (np.sum(union) + SMOOTH)
+    
     return iou_score
 
 
@@ -527,7 +532,7 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
                 # sys.exit(0)
                 pre,rec,f1,mae = f1_mae_torch(pred_val*255, gt, valid_dataset, i_test, mybins, hypar)
                 
-                print("iou_pytorch(pred_val*255, gt", iou_pytorch(pred_val*255, gt))
+                # print("iou_pytorch(pred_val*255, gt", iou_pytorch(pred_val*255, gt))
                       
                 IOU[i_test,:] = iou_pytorch(pred_val*255, gt)
                 PRE[i_test,:]= pre
@@ -573,7 +578,7 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
         writer.add_scalar("tar_loss/valid", tar_loss, epoch)
         writer.add_scalar("iou/valid", np.mean(IOU_m), epoch)
 
-    return tmp_f1, tmp_mae, val_loss, tar_loss, i_val, tmp_time, iou
+    return tmp_f1, tmp_mae, val_loss, tar_loss, i_val, tmp_time, np.mean(IOU_m)
 
 def main(train_datasets,
          valid_datasets,
@@ -746,8 +751,8 @@ if __name__ == "__main__":
     print("batch size: ", hypar["batch_size_train"])
 
     hypar["max_ite"] = 1000000 ## if early stop couldn't stop the training process, stop it by the max_ite_num
-    # hypar["max_epoch_num"] = 2000 ## if early stop and max_ite couldn't stop the training process, stop it by the max_epoch_num
-    hypar["max_epoch_num"] = 2
+    hypar["max_epoch_num"] = 2000 ## if early stop and max_ite couldn't stop the training process, stop it by the max_epoch_num
+    # hypar["max_epoch_num"] = 2
 
     main(train_datasets,
          valid_datasets,
