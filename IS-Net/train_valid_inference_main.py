@@ -3,6 +3,7 @@ import time
 import numpy as np
 from skimage import io
 import time
+import sys
 
 import torch, gc
 import torch.nn as nn
@@ -16,7 +17,7 @@ from models import *
 
 from torch.utils.tensorboard import SummaryWriter
 
-
+import matplotlib.pyplot as plt
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -469,6 +470,7 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
         REC = np.zeros((val_num,len(mybins)-1))
         F1 = np.zeros((val_num,len(mybins)-1))
         MAE = np.zeros((val_num))
+        IOU = np.zeros((val_num,len(mybins)-1))
 
         for i_val, data_val in enumerate(valid_dataloader):
             val_cnt = val_cnt + 1.0
@@ -515,10 +517,19 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
                     gt = np.zeros((shapes_val[t][0],shapes_val[t][1]))
                 with torch.no_grad():
                     gt = torch.tensor(gt).to(device)
-
+                    
+                # plt.imshow(gt.cpu().data.numpy(), cmap='gray')
+                # plt.savefig('gt.png')
+                
+                # print('gt', np.unique(gt.cpu().data.numpy()))
+                # print('pred_val', np.unique((pred_val>0.5).float().cpu().data.numpy()))
+                      
+                # sys.exit(0)
                 pre,rec,f1,mae = f1_mae_torch(pred_val*255, gt, valid_dataset, i_test, mybins, hypar)
-
-
+                
+                print("iou_pytorch(pred_val*255, gt", iou_pytorch(pred_val*255, gt))
+                      
+                IOU[i_test,:] = iou_pytorch(pred_val*255, gt)
                 PRE[i_test,:]= pre
                 REC[i_test,:] = rec
                 F1[i_test,:] = f1
@@ -543,7 +554,13 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
         PRE_m = np.mean(PRE,0)
         REC_m = np.mean(REC,0)
         f1_m = (1+0.3)*PRE_m*REC_m/(0.3*PRE_m+REC_m+1e-8)
-        iou = iou_pytorch(inputs_val_v, labels_val_v)
+        IOU_m = np.mean(IOU,0)
+       
+        # print("labels_val_v" , labels_val_v)
+        # print("labels_val_v unique", np.unique(labels_val_v.cpu().data.numpy()))
+        # print("inputs_val_v", np.unique(inputs_val_v.cpu().data.numpy()))
+        
+        print('iou, f1, pre, rec', np.mean(IOU_m), np.mean(f1_m), np.mean(PRE_m), np.mean(REC_m))
         
         tmp_f1.append(np.amax(f1_m))
         tmp_mae.append(np.mean(MAE))
@@ -554,7 +571,7 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
         writer.add_scalar("MAE/valid", np.mean(MAE), epoch)
         writer.add_scalar("val_loss/valid", val_loss, epoch)
         writer.add_scalar("tar_loss/valid", tar_loss, epoch)
-        writer.add_scalar("iou/valid", iou, epoch)
+        writer.add_scalar("iou/valid", np.mean(IOU_m), epoch)
 
     return tmp_f1, tmp_mae, val_loss, tar_loss, i_val, tmp_time, iou
 
@@ -651,7 +668,7 @@ def main(train_datasets,
 
 
 if __name__ == "__main__":
-    writer = SummaryWriter(comment="Second_test")
+    writer = SummaryWriter("Lens_iou_test")
 
     ### --------------- STEP 1: Configuring the Train, Valid and Test datasets ---------------
     ## configure the train, valid and inference datasets
@@ -729,7 +746,8 @@ if __name__ == "__main__":
     print("batch size: ", hypar["batch_size_train"])
 
     hypar["max_ite"] = 1000000 ## if early stop couldn't stop the training process, stop it by the max_ite_num
-    hypar["max_epoch_num"] = 2000 ## if early stop and max_ite couldn't stop the training process, stop it by the max_epoch_num
+    # hypar["max_epoch_num"] = 2000 ## if early stop and max_ite couldn't stop the training process, stop it by the max_epoch_num
+    hypar["max_epoch_num"] = 2
 
     main(train_datasets,
          valid_datasets,
