@@ -680,7 +680,8 @@ if __name__ == "__main__":
     hypar = {}
 
     ## -- 2.1. configure the model saving or restoring path --
-    hypar["mode"] = "train"
+    hypar["mode"] = "train" # "valid" for validation and "train" for train
+    
     ## "train": for training,
     ## "valid": for validation and inferening,
     ## in "valid" mode, it will calculate the accuracy as well as save the prediciton results into the "hypar["valid_out_dir"]", which shouldn't be ""
@@ -691,12 +692,12 @@ if __name__ == "__main__":
         hypar["valid_out_dir"] = "" ## for "train" model leave it as "", for "valid"("inference") mode: set it according to your local directory
         hypar["model_path"] ="../saved_models/IS-Net-test" ## model weights saving (or restoring) path
         hypar["restore_model"] = "" ## name of the segmentation model weights .pth for resume training process from last stop or for the inferencing
-        hypar["start_ite"] = 0 ## start iteration for the training, can be changed to match the restored training process
+        hypar["start_ite"] = "" ## start iteration for the training, can be changed to match the restored training process
         hypar["gt_encoder_model"] = ""
     else: ## configure the segmentation output path and the to-be-used model weights path
-        hypar["valid_out_dir"] = "../your-results/"##"../DIS5K-Results-test" ## output inferenced segmentation maps into this fold
+        hypar["valid_out_dir"] = "../valid_train/3-Lenses/"##"../DIS5K-Results-test" ## output inferenced segmentation maps into this fold
         hypar["model_path"] = "../saved_models/IS-Net" ## load trained weights from this path
-        hypar["restore_model"] = "isnet.pth"##"isnet.pth" ## name of the to-be-loaded weights
+        hypar["restore_model"] = "gpu_itr_84000_traLoss_0.3668_traTarLoss_0.0037_valLoss_0.3804_valTarLoss_0.0069_maxF1_0.9815_mae_0.0033_time_0.022544.pth" #modelname
 
     # if hypar["restore_model"]!="":
     #     hypar["start_ite"] = int(hypar["restore_model"].split("_")[2])
