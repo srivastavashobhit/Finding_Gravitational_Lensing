@@ -21,22 +21,33 @@ import matplotlib.pyplot as plt
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-SMOOTH = 1e-6
+SMOOTH = 1e-15
 
 def iou_pytorch(outputs, labels):
     # You can comment out this line if you are passing tensors of equal shape
     # But if you are passing output from UNet or something it will most probably
     # be with the BATCH x 1 x H x W shape
     outputs = outputs.squeeze(1)  # BATCH x 1 x H x W => BATCH x H x W
-    outputs= outputs.cpu().data.numpy()
-    labels = labels.cpu().data.numpy()
+    y_pred = outputs.cpu().data.numpy()
+    y_true = labels.cpu().data.numpy()
+    y_pred = y_pred.flatten()
+    y_true =y_true.flatten()
+    
+    # Converting it to 1's and 0's
+    y_pred, y_true = y_pred/255., y_true/255.
+    y_pred = (y_pred>=0.5).astype(np.float32)
+    y_true = (y_true>=0.5).astype(np.float32)
+    
+    intersection = (y_true*y_pred).sum()
+    union = y_true.sum() + y_pred.sum() - intersection
+    iou_score = (intersection + SMOOTH) / (union + SMOOTH)
     # intersection = torch.logical_and(labels, outputs)
     # union = torch.logical_or(labels, outputs)
     # iou_score = torch.sum(intersection) / (torch.sum(union) + SMOOTH)
     
-    intersection = np.logical_and(labels, outputs)
-    union = np.logical_or(labels, outputs)
-    iou_score = np.sum(intersection) / (np.sum(union) + SMOOTH)
+    # intersection = np.logical_and(labels, outputs)
+    # union = np.logical_or(labels, outputs)
+    # iou_score = np.sum(intersection) / (np.sum(union) + SMOOTH)
     
     return iou_score
 
@@ -556,6 +567,7 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
             del loss2_val, loss_val
 
         print('============================')
+        #print("line 571, IOU", IOU.size)
         PRE_m = np.mean(PRE,0)
         REC_m = np.mean(REC,0)
         f1_m = (1+0.3)*PRE_m*REC_m/(0.3*PRE_m+REC_m+1e-8)
@@ -711,13 +723,13 @@ if __name__ == "__main__":
 
     if hypar["mode"] == "train":
         hypar["valid_out_dir"] = "" ## for "train" model leave it as "", for "valid"("inference") mode: set it according to your local directory
-        hypar["model_path"] ="../saved_models/IS-Net-test" ## model weights saving (or restoring) path
+        hypar["model_path"] ="saved_models/IS-Net-test" ## model weights saving (or restoring) path
         hypar["restore_model"] = "" ## name of the segmentation model weights .pth for resume training process from last stop or for the inferencing
         hypar["start_ite"] = 0 ## start iteration for the training, can be changed to match the restored training process
         hypar["gt_encoder_model"] = ""
     else: ## configure the segmentation output path and the to-be-used model weights path
         hypar["valid_out_dir"] = "../your-results/"##"../DIS5K-Results-test" ## output inferenced segmentation maps into this fold
-        hypar["model_path"] = "../saved_models/IS-Net" ## load trained weights from this path
+        hypar["model_path"] = "saved_models/IS-Net" ## load trained weights from this path
         hypar["restore_model"] = "isnet.pth"##"isnet.pth" ## name of the to-be-loaded weights
 
     # if hypar["restore_model"]!="":
