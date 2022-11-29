@@ -440,7 +440,7 @@ def train(net, optimizer, train_dataloaders, train_datasets, valid_dataloaders, 
                     maxf1 = '_'.join(tmp_f1_str)
                     meanM = '_'.join(tmp_mae_str)
                     # .cpu().detach().numpy()
-                    model_name = "/gpu_itr_"+str(ite_num)+\
+                    model_name = "/"+run_code+"_gpu_itr_"+str(ite_num)+\
                                 "_traLoss_"+str(np.round(running_loss / ite_num4val,4))+\
                                 "_traTarLoss_"+str(np.round(running_tar_loss / ite_num4val,4))+\
                                 "_valLoss_"+str(np.round(val_loss /(i_val+1),4))+\
@@ -685,23 +685,24 @@ def main(train_datasets,
 
 
 if __name__ == "__main__":
-    writer = SummaryWriter("Lens_iou_test")
+    run_code = "arcs"
+    writer = SummaryWriter(run_code+'_v1')
 
     ### --------------- STEP 1: Configuring the Train, Valid and Test datasets ---------------
     ## configure the train, valid and inference datasets
     train_datasets, valid_datasets = [], []
     dataset_1, dataset_1 = {}, {}
 
-    dataset_tr = {"name": "GS-AMP-TR-Lenses-1",
+    dataset_tr = {"name": "GS-AMP-TR-Arcs-1",
                  "im_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcMayPresent/train/images",
-                 "gt_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcMayPresent/train/lenses",
+                 "gt_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcMayPresent/train/"+run_code,
                  "im_ext": ".png",
                  "gt_ext": ".png",
                  "cache_dir":"cache"}
 
-    dataset_vd = {"name": "GS-AMP-VD-Lenses-1",
+    dataset_vd = {"name": "GS-AMP-VD-Arcs-1",
                  "im_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcMayPresent/valid/images",
-                 "gt_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcMayPresent/valid/lenses",
+                 "gt_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcMayPresent/valid/"+run_code,
                  "im_ext": ".png",
                  "gt_ext": ".png",
                  "cache_dir":"cache"}
@@ -723,13 +724,13 @@ if __name__ == "__main__":
 
     if hypar["mode"] == "train":
         hypar["valid_out_dir"] = "" ## for "train" model leave it as "", for "valid"("inference") mode: set it according to your local directory
-        hypar["model_path"] ="saved_models/IS-Net-test" ## model weights saving (or restoring) path
+        hypar["model_path"] ="saved_models/ISNet_"+run_code ## model weights saving (or restoring) path
         hypar["restore_model"] = "" ## name of the segmentation model weights .pth for resume training process from last stop or for the inferencing
         hypar["start_ite"] = 0 ## start iteration for the training, can be changed to match the restored training process
         hypar["gt_encoder_model"] = ""
     else: ## configure the segmentation output path and the to-be-used model weights path
-        hypar["valid_out_dir"] = "../your-results/"##"../DIS5K-Results-test" ## output inferenced segmentation maps into this fold
-        hypar["model_path"] = "saved_models/IS-Net" ## load trained weights from this path
+        hypar["valid_out_dir"] = "valid_output/results_"+run_code+"/v1"##"../DIS5K-Results-test" ## output inferenced segmentation maps into this fold
+        hypar["model_path"] = "saved_models/ISNet_"+run_code ## load trained weights from this path
         hypar["restore_model"] = "isnet.pth"##"isnet.pth" ## name of the to-be-loaded weights
 
     # if hypar["restore_model"]!="":
