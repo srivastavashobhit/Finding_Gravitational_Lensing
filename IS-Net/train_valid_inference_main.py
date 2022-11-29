@@ -693,14 +693,14 @@ if __name__ == "__main__":
     train_datasets, valid_datasets = [], []
     dataset_1, dataset_1 = {}, {}
 
-    dataset_tr = {"name": "GS-NP-AAP-TR-"+ run_code +"-2",
+    dataset_tr = {"name": "GS-AAP-TR-"+ run_code +"-2",
                  "im_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcAlwaysPresent/train/images",
                  "gt_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcAlwaysPresent/train/"+run_code,
                  "im_ext": ".png",
                  "gt_ext": ".png",
                  "cache_dir":"cache"}
 
-    dataset_vd = {"name": "GS-NP-AAP-VD-" + run_code + "-2",
+    dataset_vd = {"name": "GS-AAP-VD-" + run_code + "-2",
                  "im_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcAlwaysPresent/valid/images",
                  "gt_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcAlwaysPresent/valid/"+run_code,
                  "im_ext": ".png",
@@ -729,7 +729,7 @@ if __name__ == "__main__":
         hypar["start_ite"] = 0 ## start iteration for the training, can be changed to match the restored training process
         hypar["gt_encoder_model"] = ""
     else: ## configure the segmentation output path and the to-be-used model weights path
-        hypar["valid_out_dir"] = "valid_output/results"+run_code+"/v1"##"../DIS5K-Results-test" ## output inferenced segmentation maps into this fold
+        hypar["valid_out_dir"] = "valid_output/results"+run_code+"/v2"##"../DIS5K-Results-test" ## output inferenced segmentation maps into this fold
         hypar["model_path"] = "saved_models/ISNet_"+run_code ## load trained weights from this path
         hypar["restore_model"] = "isnet.pth"##"isnet.pth" ## name of the to-be-loaded weights
 
