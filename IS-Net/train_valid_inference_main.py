@@ -360,8 +360,10 @@ def train(net, optimizer, train_dataloaders, train_datasets, valid_dataloaders, 
     epoch_num = hypar["max_epoch_num"]
     notgood_cnt = 0
     for epoch in range(epoch_num): ## set the epoch num as 100000
-
+        train_cnt, train_epoch_loss = 0,0
+        print("Epoch : ", epoch+1)
         for i, data in enumerate(gos_dataloader):
+            train_cnt = train_cnt + 1.
 
             if(ite_num >= max_ite):
                 print("Training Reached the Maximal Iteration Number ", max_ite)
@@ -408,6 +410,7 @@ def train(net, optimizer, train_dataloaders, train_datasets, valid_dataloaders, 
 
             # # print statistics
             running_loss += loss.item()
+            train_epoch_loss += loss.item()
             running_tar_loss += loss2.item()
 
             # del outputs, loss
@@ -417,6 +420,7 @@ def train(net, optimizer, train_dataloaders, train_datasets, valid_dataloaders, 
             # print(">>>"+model_path.split('/')[-1]+" - [epoch: %3d/%3d, batch: %5d/%5d, ite: %d] train loss: %3f, tar: %3f, time-per-iter: %3f s, time_read: %3f" % (
             # epoch + 1, epoch_num, (i + 1) * batch_size_train, train_num, ite_num, running_loss / ite_num4val, running_tar_loss / ite_num4val, time.time()-start_last, time.time()-start_last-end_inf_loss_back))
             start_last = time.time()
+            
 
             if ite_num % model_save_fre == 0:  # validate every 2000 iterations
                 notgood_cnt += 1
@@ -457,6 +461,9 @@ def train(net, optimizer, train_dataloaders, train_datasets, valid_dataloaders, 
                 if(notgood_cnt >= hypar["early_stop"]):
                     print("No improvements in the last "+str(notgood_cnt)+" validation periods, so training stopped !")
                     exit()
+                    
+        print("train_loss : ",np.round(train_epoch_loss / train_cnt,4))
+        writer.add_scalar("tra_loss/train", np.round(train_epoch_loss / train_cnt,4), epoch)
 
     print("Training Reaches The Maximum Epoch Number")
 
@@ -572,12 +579,6 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
         REC_m = np.mean(REC,0)
         f1_m = (1+0.3)*PRE_m*REC_m/(0.3*PRE_m+REC_m+1e-8)
         IOU_m = np.mean(IOU,0)
-       
-        # print("labels_val_v" , labels_val_v)
-        # print("labels_val_v unique", np.unique(labels_val_v.cpu().data.numpy()))
-        # print("inputs_val_v", np.unique(inputs_val_v.cpu().data.numpy()))
-        
-        print('iou, f1, pre, rec', np.mean(IOU_m), np.mean(f1_m), np.mean(PRE_m), np.mean(REC_m))
         
         tmp_f1.append(np.amax(f1_m))
         tmp_mae.append(np.mean(MAE))
@@ -586,9 +587,11 @@ def valid(net, valid_dataloaders, valid_datasets, hypar, epoch=0):
         writer.add_scalar("REC_m/valid", np.mean(REC_m), epoch)
         writer.add_scalar("f1_m/valid", np.mean(f1_m), epoch)
         writer.add_scalar("MAE/valid", np.mean(MAE), epoch)
-        writer.add_scalar("val_loss/valid", val_loss, epoch)
-        writer.add_scalar("tar_loss/valid", tar_loss, epoch)
+        writer.add_scalar("val_loss/valid", np.round(val_loss/val_cnt,4), epoch)
+        #writer.add_scalar("tar_loss/valid", tar_loss, epoch)
         writer.add_scalar("iou/valid", np.mean(IOU_m), epoch)
+        
+        print(f'val_loss:{np.round(val_loss/val_cnt,4)}, iou:{np.mean(IOU_m)}, f.3:{np.mean(f1_m)}, pre:{np.mean(PRE_m)}, rec:{np.mean(REC_m)}')
 
     return tmp_f1, tmp_mae, val_loss, tar_loss, i_val, tmp_time, np.mean(IOU_m)
 
@@ -650,8 +653,8 @@ def main(train_datasets,
     if(hypar["model_digit"]=="half"):
         net.half()
         for layer in net.modules():
-          if isinstance(layer, nn.BatchNorm2d):
-            layer.float()
+            if isinstance(layer, nn.BatchNorm2d):
+                layer.float()
 
     if torch.cuda.is_available():
         net.cuda()
@@ -686,21 +689,21 @@ def main(train_datasets,
 
 if __name__ == "__main__":
     run_code = "arcs"
-    writer = SummaryWriter(run_code+'_v1')
+    writer = SummaryWriter(run_code+'_v3')
 
     ### --------------- STEP 1: Configuring the Train, Valid and Test datasets ---------------
     ## configure the train, valid and inference datasets
     train_datasets, valid_datasets = [], []
     dataset_1, dataset_1 = {}, {}
 
-    dataset_tr = {"name": "GS-AAP-TR-"+ run_code +"-2",
+    dataset_tr = {"name": "GS-AAP-TR-"+ run_code +"-3",
                  "im_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcAlwaysPresent/train/images",
                  "gt_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcAlwaysPresent/train/"+run_code,
                  "im_ext": ".png",
                  "gt_ext": ".png",
                  "cache_dir":"cache"}
 
-    dataset_vd = {"name": "GS-AAP-VD-" + run_code + "-2",
+    dataset_vd = {"name": "GS-AAP-VD-" + run_code + "-3",
                  "im_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcAlwaysPresent/valid/images",
                  "gt_dir": "/global/cfs/projectdirs/cosmo/work/users/usf_cs690_2022_fall/galaxy_simulated/ArcAlwaysPresent/valid/"+run_code,
                  "im_ext": ".png",
@@ -729,7 +732,7 @@ if __name__ == "__main__":
         hypar["start_ite"] = 0 ## start iteration for the training, can be changed to match the restored training process
         hypar["gt_encoder_model"] = ""
     else: ## configure the segmentation output path and the to-be-used model weights path
-        hypar["valid_out_dir"] = "valid_output/results"+run_code+"/v2"##"../DIS5K-Results-test" ## output inferenced segmentation maps into this fold
+        hypar["valid_out_dir"] = "valid_output/results"+run_code+"/v3"##"../DIS5K-Results-test" ## output inferenced segmentation maps into this fold
         hypar["model_path"] = "saved_models/ISNet_"+run_code ## load trained weights from this path
         hypar["restore_model"] = "isnet.pth"##"isnet.pth" ## name of the to-be-loaded weights
 
