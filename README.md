@@ -27,16 +27,14 @@ To precisely segment existing Gravitational Lenses in Deep Space to ease and fos
 ## Results
 
 <p align="center">
-  <img src="https://www.linkpicture.com/q/1sd.png
-" style="width:500px;" />
+  <img src="Support_Files/Lens.png" style="width:500px;" />
 </p>
 <p align="center">
 Fig 3. Segmentation Results on the Lens component
 </p>
 
 <p align="center">
-  <img src="https://www.linkpicture.com/q/2sd.png
-" style="width:500px;" />
+  <img src="Support_Files/Arcs.png" style="width:500px;" />
 </p>
 <p align="center">
 Fig 4. Segmentation Results on the Arc component
@@ -47,8 +45,7 @@ Fig 4. Segmentation Results on the Arc component
 We used Nested U2-Net with Intermediate Supervision from https://github.com/xuebinqin/DIS
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/xuebinqin/DIS/main/figures/is-net.png
-" style="width:700px;" />
+  <img src="Support_Files/is-net.png" style="width:700px;" />
 </p>
 
 
