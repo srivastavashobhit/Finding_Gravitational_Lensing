@@ -20,11 +20,11 @@ Fig 2. LRG 3-757 Gravitation Lens captured by Hubble Space Telescope's Wide Fiel
 </p>
 
 
-## Project Goal
+## Project Objectives
 
 To precisely segment existing Gravitational Lenses in Deep Space to ease and foster scientific research works.
 
-## Results
+## Results 
 
 <p align="center">
   <img src="Support_Files/Lens.png" style="width:500px;" />
@@ -39,6 +39,7 @@ Fig 3. Segmentation Results on the Lens component
 <p align="center">
 Fig 4. Segmentation Results on the Arc component
 </p>
+
 
 ## Model Architecture
 
